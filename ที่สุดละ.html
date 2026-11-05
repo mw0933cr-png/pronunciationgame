@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมประลองลิ้น: โหมดท้าทาย 3 ระดับ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            --primary-color: #2c3e50;
+            --primary-hover: #1a252f;
+        }
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background: var(--bg-gradient); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+            box-sizing: border-box;
+            transition: background 0.5s ease;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.96); 
+            padding: 35px 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2); 
+            text-align: center; 
+            max-width: 650px; 
+            width: 100%; 
+            display: none;
+        }
+        .active-container {
+            display: block;
+        }
+        h1 { color: var(--primary-color); margin-top: 0; transition: color 0.3s ease; }
+        .score-board { 
+            font-size: 16px; 
+            color: #2c3e50; 
+            font-weight: bold; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px dashed #ccc;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .timer-wrapper {
+            margin: 15px 0;
+        }
+        .timer-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #e74c3c;
+            margin-bottom: 6px;
+        }
+        .timer-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .timer-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
+            transition: width 0.1s linear;
+        }
+        .phrase-box { 
+            font-size: 24px; 
+            font-weight: 700; 
+            color: #2c3e50; 
+            margin: 15px 0; 
+            padding: 28px 20px; 
+            background: #fdfefe; 
+            border-radius: 15px; 
+            border-left: 6px solid var(--primary-color);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
+            line-height: 1.6; 
+            transition: border-color 0.3s ease;
+        }
+        .status { margin-top: 15px; font-size: 16px; color: #7f8c8d; min-height: 24px; }
+        button { 
+            background: var(--primary-color); 
+            color: white; 
+            border: none; 
+            padding: 15px 36px; 
+            font-size: 18px; 
+            font-weight: bold;
+            font-family: 'Prompt', sans-serif;
+            border-radius: 50px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+            margin-top: 15px;
+        }
+        button:hover { transform: translateY(-3px); background: var(--primary-hover); }
+        button:disabled { background: #bdc3c7 !important; cursor: not-allowed; transform: none; box-shadow: none; color: #7f8c8d; }
+        
+        .menu-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin: 12px 0;
+            padding: 16px 24px;
+            border-radius: 15px;
+            font-size: 18px;
+        }
+        .btn-easy { background: #27ae60; }
+        .btn-easy:hover { background: #1e8449; }
+        .btn-medium { background: #2980b9; }
+        .btn-medium:hover { background: #1f618d; }
+        .btn-hard { background: #c0392b; }
+        .btn-hard:hover { background: #922b21; }
+
+        .badge {
+            font-size: 14px;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .file-upload-box {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px dashed #95a5a6;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #34495e;
+            text-align: left;
+        }
+        .file-upload-box p { margin: 0 0 8px 0; font-weight: 500; }
+        .file-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .result-box { 
+            margin-top: 15px; 
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 17px; 
+            display: none;
+        }
+        .pass { background: #eafaf1; border: 1px solid #2ecc71; color: #27ae60; }
+        .fail { background: #fdedec; border: 1px solid #e74c3c; color: #c0392b; }
+        .end-screen h2 { font-size: 32px; color: var(--primary-color); margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<!-- หน้าเมนูหลัก -->
+<div class="container active-container" id="menu-container">
+    <h1 style="color: #2c3e50;">🎙️ เกมประลองลิ้น</h1>
+    <p style="font-size: 16px; color: #34495e; margin-bottom: 20px;">
+        สุ่มคำอ่าน <strong>20 ข้อ</strong> จากคลัง <strong>300 ประโยค</strong> (จับเวลาข้อละ 10 วินาที)<br>
+        ทำคะแนนให้ถึง <strong>1,500 / 2,000</strong> เพื่อปลดล็อกโหมดถัดไป!
+    </p>
+    
+    <button class="menu-btn btn-easy" id="btn-mode-easy" onclick="startGame('easy')">
+        <span>🟢 โหมดง่าย </span>
+        <span class="badge" id="badge-easy">ปลดล็อกแล้ว (300 คำ)</span>
+    </button>
+    
+    <button class="menu-btn btn-medium" id="btn-mode-medium" onclick="startGame('medium')" disabled>
+        <span>🔵 โหมดกลาง </span>
+        <span class="badge" id="badge-medium">🔒 ต้องผ่านโหมดง่ายก่อน</span>
+    </button>
+    
+    <button class="menu-btn btn-hard" id="btn-mode-hard" onclick="startGame('hard')" disabled>
+        <span>🔴 โหมดยาก </span>
+        <span class="badge" id="badge-hard">🔒 ต้องผ่านโหมดกลางก่อน</span>
+    </button>
+
+        </div>
+    </div>
+</div>
+
+<!-- หน้าเล่นเกม -->
+<div class="container" id="game-container">
+    <h1 id="game-title">🎙️ เกมฝึกออกเสียง</h1>
+    
+    <div class="score-board">
+        <span id="level-text">ข้อที่: 1 / 20</span>
+        <span id="target-score-text">เกณฑ์ผ่านโหมด: 1,500</span>
+        <span id="total-score-text">คะแนนรวม: 0</span>
+    </div>
+
+    <!-- แถบจับเวลา 10 วินาที -->
+    <div class="timer-wrapper">
+        <div class="timer-text" id="timer-text">⏱️ เวลาในการอ่าน: 10.0 วินาที</div>
+        <div class="timer-bar-bg">
+            <div class="timer-bar-fill" id="timer-bar"></div>
+        </div>
+    </div>
+
+    <div class="phrase-box" id="phrase-display">กำลังโหลด...</div>
+    
+    <button id="mic-btn" onclick="startListening()">🎤 แตะเพื่อพูด (จับเวลา 10 วิ)</button>
+    <div class="status" id="status-text">พร้อมแล้วกดปุ่มเพื่อพูดภายใน 10 วินาทีได้เลย</div>
+
+    <div class="result-box" id="result-box"></div>
+    <button onclick="showMenu()" style="margin-top: 25px; font-size: 15px; padding: 10px 22px; background: #95a5a6;">🔙 กลับเมนูหลัก</button>
+</div>
+
+<!-- หน้าจบเกม -->
+<div class="container end-screen" id="end-container">
+    <h1 id="end-title">🎉 จบการทดสอบ!</h1>
+    <h2 id="final-score">คะแนนรวม: 0 / 2000</h2>
+    <p id="end-message" style="font-size: 18px; color: #34495e; line-height: 1.6;"></p>
+    
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button id="next-mode-btn" onclick="goToNextMode()" style="display: none; background: #27ae60;">🚀 ไปเล่นโหมดถัดไปเลย!</button>
+        <button onclick="startGame(currentMode)">🔄 เล่นโหมดนี้อีกครั้ง (สุ่มคำใหม่)</button>
+        <button onclick="showMenu()" style="background: #7f8c8d;">🏠 กลับเมนูหลัก</button>
+    </div>
+</div>
+
+<script>
+    // ค่าคงที่ของเกม
+    const QUESTIONS_PER_GAME = 20;     // สุ่ม 20 ข้อต่อรอบ
+    const TOTAL_BANK_SIZE = 300;       // คลังคำอ่านหมวดละ 300 ประโยค
+    const TIME_LIMIT_SEC = 10;         // จับเวลาข้อละ 10 วินาที
+    const PASS_QUESTION_SCORE = 70;    // เกณฑ์ความแม่นยำรายข้อ (70% ขึ้นไปถือว่าอ่านผ่าน)
+    const PASS_MODE_SCORE = 1500;      // เกณฑ์คะแนนรวมเพื่อปลดล็อกโหมดถัดไป (1,500 / 2,000)
+
+    // ฟังก์ชันสร้างคลังคำอ่าน 300 ประโยคที่ไม่ซ้ำกันสำหรับแต่ละโหมด (กรณีไม่ได้โหลดไฟล์แยก)
+    function generate300Phrases(mode) {
+        const list = [];
+        if (mode === 'easy') {
+            // โหมดง่าย: ฝึก ร - ล และประโยคออกเสียงพื้นฐานชัดเจน (300 ประโยค)
+            const subjects = ["ลุงเริง", "ป้ารัตน์", "พี่ลี", "น้องริน", "ครูรักษ์", "หลานลอย", "หมอเรือง", "น้าล้วน", "ตาเรียม", "ยายละม่อม", "เด็กชายรุ่ง", "แม่ค้าลัดดา", "ชาวไร่รวย", "คนขับรถ", "นักร้องร็อก"];
+            const actions = ["เล่าเรื่อง", "รับรอง", "เรียบเรียง", "รวบรวม", "ลำเลียง", "แลกเปลี่ยน", "เร่งรัด", "เริ่มต้น", "รับรัก", "ร้องเพลง", "วิ่งลุย", "ลัดเลาะ", "ล่องเรือ", "ร้อยมาลัย", "ระบายสี", "เลือกซื้อ", "รักษา", "เรียกหา", "รอคอย", "รื่นเริง"];
+            const places = ["ริมรั้วโรงเรียน", "รอบระเบียงเรือน", "ริมคลองลาดพร้าว", "กลางลานร่มรื่น", "หน้าโรงละคร", "ริมร่องน้ำใส", "ในเรือนรับรอง", "ข้างร้านขายเลื่อย", "ท้ายไร่รุ่งเรือง", "ริมทะเลเรียบ"];
+            for (let s of subjects) {
+                for (let a of actions) {
+                    for (let p of places) {
+                        if (list.length < TOTAL_BANK_SIZE) {
+                            list.push(`${s}${a}${p}`);
+                        }
+                    }
+                }
+            }
+        } else if (mode === 'medium') {
+            // โหมดกลาง: ฝึกคำควบกล้ำ ร ล ว เข้มข้น (300 ประโยค)
+            const p1 = ["ครูเปรม", "พรานไพร", "พลอยพราว", "ครอบครัว", "หนุ่มสาว", "ควาญช้าง", "ชาวกรุง", "นายตรวจ", "กลุ่มเพื่อน", "แม่ครัว", "นักปราชญ์", "คนงาน", "หลานชาย", "พี่สาว", "น้องชาย"];
+            const p2 = ["ปรับปรุงเปลี่ยนแปลง", "ตรวจตราเตรียมพร้อม", "กวาดบ้านแกว่งไกว", "ปลูกป่าปลอดโปร่ง", "ไขว่คว้าความฝัน", "เป่าขลุ่ยคลอเคลีย", "ปล่อยปลากลางคลอง", "ควบม้ากว้างขวาง", "กราบพระขอพร", "ปัดกวาดคราบไคล", "ตรากตรำกรำแดด", "พร้อมเพรียงกลมเกลียว", "ปลุกปลอบขวัญใจ", "ผลักดันความดี", "เกรี้ยวกราดครื้นเครง"];
+            const p3 = ["กลางคลองคลื่นลม", "ท่ามกลางขวากหนาม", "ริมฝั่งกว้างไกล", "อย่างคล่องแคล่วว่องไว", "ด้วยความปลอดโปร่ง", "พร้อมเพรียงครบครัน", "ในคราวเปลี่ยนแปลง", "เมื่อคราวเคราะห์ร้าย", "จนเรื่องราวคลี่คลาย", "อย่างตรงไปตรงมา"];
+            for (let a of p1) {
+                for (let b of p2) {
+                    for (let c of p3) {
+                        if (list.length < TOTAL_BANK_SIZE) {
+                            list.push(`${a}${b}${c}`);
+                        }
+                    }
+                }
+            }
+        } else {
+            // โหมดยาก: ประโยคลิ้นพันกันระดับปราบเซียน (300 ประโยค)
+            const t1 = [
+                "ยักษ์ใหญ่ไล่ยักษ์เล็ก", "ยานัตถุ์หมอมีแก้ฝีแก้หิด", "ทหารถือปืนแบกปูนไปกู้ตึก", "เช้าฟาดผัดฟักเย็นฟาดฟักผัด", "กินกล้วยตากตอนเช้ากินกล้วยต้มตอนเย็น",
+                "ตาตี่ตีกบตบตูดกบ", "หมูหมึกกุ้งหุงอุ่นตุ๋นต้มนึ่ง", "ยายกินลำไยน้ำลายยายไหลย้อย", "ควายขวิดขวานควาญขวิดควาย", "ชามเขียวคว่ำเช้าชามขาวคว่ำค่ำ",
+                "สำลีขายหอยสำออยขายสี", "ก้นกบตกกบตกกบก้นกบ", "ปลาวาฬว่ายน้ำข้ามคลองบางกอก", "ระนองระยองยะลาล้วนมีเรือลอย", "หมูกระทะหมูจุ่มกระทะหมูจุ่ม"
+            ];
+            const t2 = [
+                "ยักษ์เล็กไล่ยักษ์ใหญ่", "ยานัตถุ์หมอชิตแก้หิดแก้ฝี", "แบกปูนไปโบกตึกถือปืนไปยิงตึก", "ผัดฟักฟาดเช้าฟักผัดฟาดเย็น", "ต้มกล้วยตากตากกล้วยต้ม",
+                "ตีตูดกบตบตูดตาตี่", "ต้มยำกุ้งน้ำข้นต้มยำกุ้งน้ำใส", "น้ำลายยายไหลย้อยรดยอดหญ้า", "ขวานขวิดควายควายขวิดควาญ", "ชามขาวคว่ำเช้าชามเขียวคว่ำค่ำ",
+                "สำออยขายหอยสำลีขายสี", "ตกกบก้นกบก้นกบตกกบ", "ฉลามว่ายน้ำข้ามคลองบางหลวง", "ยะลาระยองระนองล้วนมีลิงโลด", "หมูจุ่มหมูกระทะจุ่มหมูกระทะ",
+                "ช้างเชื่องช้าฉุดฉวยช่อชมพู่", "กล้วยตากกล้วยต้มปนกล้วยปิ้ง", "ผีฝากถุงข้าวสารให้ฉัน", "เศรษฐีเรือทองท่องทะเลไทย", "ระฆังดังหง่างเหง่งยามย่ำรุ่ง"
+            ];
+            for (let a of t1) {
+                for (let b of t2) {
+                    if (list.length < TOTAL_BANK_SIZE) {
+                        list.push(`${a} ${b}`);
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    // ข้อมูลแต่ละโหมด
+    const gameData = {
+        easy: {
+            title: "🟢 โหมดง่าย (คลังคำศัพท์ 1)",
+            fileKey: "1",
+            nextMode: "medium",
+            theme: { bg: "linear-gradient(135deg, #a8ff78 0%, #78ffd6 100%)", primary: "#27ae60", hover: "#1e8449" },
+            phrases: generate300Phrases('easy'),
+            usedIndices: new Set(),
+            failMsg: "❌ ยังไม่เป๊ะ! ออกเสียงให้ชัดอีกนิดแล้วลองใหม่นะ"
+        },
+        medium: {
+            title: "🔵 โหมดกลาง (คลังคำศัพท์ 2)",
+            fileKey: "2",
+            nextMode: "hard",
+            theme: { bg: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", primary: "#2980b9", hover: "#1f618d" },
+            phrases: generate300Phrases('medium'),
+            usedIndices: new Set(),
+            failMsg: "❌ คำควบกล้ำยังไม่ชัด! ตั้งสติแล้วพูดใหม่อีกรอบนะ"
+        },
+        hard: {
+            title: "🔴 โหมดยาก (คลังคำศัพท์ 3)",
+            fileKey: "3",
+            nextMode: null,
+            theme: { bg: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)", primary: "#c0392b", hover: "#922b21" },
+            phrases: generate300Phrases('hard'),
+            usedIndices: new Set(),
+            failMsg: "❌ ลิ้นพันกันแล้ว! สูดหายใจลึกๆ แล้วลองใหม่นะ"
+        }
+    };
+
+    // สถานะการปลดล็อกด่าน
+    const unlockedModes = {
+        easy: true,
+        medium: false,
+        hard: false
+    };
+
+    let currentMode = 'easy';
+    let selectedQuestions = []; // เก็บ 20 ประโยคที่สุ่มมาในรอบนั้น
+    let currentLevel = 0;
+    let totalScore = 0;
+    let attemptsOnCurrentQuestion = 0;
+
+    // ตัวแปรจับเวลา 10 วินาที
+    let countdownInterval = null;
+    let timeRemaining = TIME_LIMIT_SEC;
+    let isEvaluating = false;
+
+    // ดึง Elements
+    const menuContainer = document.getElementById('menu-container');
+    const gameContainer = document.getElementById('game-container');
+    const endContainer = document.getElementById('end-container');
+    
+    const gameTitle = document.getElementById('game-title');
+    const phraseDisplay = document.getElementById('phrase-display');
+    const micBtn = document.getElementById('mic-btn');
+    const statusText = document.getElementById('status-text');
+    const resultBox = document.getElementById('result-box');
+    const levelText = document.getElementById('level-text');
+    const totalScoreText = document.getElementById('total-score-text');
+    const timerText = document.getElementById('timer-text');
+    const timerBar = document.getElementById('timer-bar');
+
+    // พยายามโหลดไฟล์ 1, 2, 3 หรือ 1.txt, 2.txt, 3.txt อัตโนมัติเมื่อเปิดหน้าเว็บ
+    async function tryAutoLoadFiles() {
+        const mapping = [
+            { mode: 'easy', num: 1, candidates: ['1.txt', '1'] },
+            { mode: 'medium', num: 2, candidates: ['2.txt', '2'] },
+            { mode: 'hard', num: 3, candidates: ['3.txt', '3'] }
+        ];
+
+        for (let item of mapping) {
+            for (let filename of item.candidates) {
+                try {
+                    const response = await fetch(filename);
+                    if (response.ok) {
+                        const text = await response.text();
+                        const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+                        if (lines.length >= QUESTIONS_PER_GAME) {
+                            gameData[item.mode].phrases = lines;
+                            gameData[item.mode].usedIndices.clear();
+                            document.getElementById(`file-status-${item.num}`).innerText = 
+                                `✅ โหลดไฟล์ "${filename}" สำเร็จ (${lines.length} ประโยค)`;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    // ข้ามไปใช้คลังคำในระบบหากเปิดผ่าน file:// แล้วติด CORS
+                }
+            }
+        }
+    }
+    tryAutoLoadFiles();
+
+    // ฟังก์ชันอัปโหลดไฟล์ 1, 2, 3 ด้วยตัวเองผ่านปุ่มเลือกไฟล์
+    function loadCustomFile(event, mode, fileNum) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length < QUESTIONS_PER_GAME) {
+                alert(`ไฟล์ต้องมีอย่างน้อย ${QUESTIONS_PER_GAME} ประโยค (พบเพียง ${lines.length} ประโยค)`);
+                return;
+            }
+            gameData[mode].phrases = lines;
+            gameData[mode].usedIndices.clear();
+            document.getElementById(`file-status-${fileNum}`).innerText = 
+                `✅ อัปโหลด "${file.name}" สำเร็จ (${lines.length} ประโยค)`;
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    // ฟังก์ชันสุ่ม 20 ประโยคจาก 300 ประโยคแบบไม่ซ้ำกันเลย
+    function pick20UniquePhrases(mode) {
+        const modeObj = gameData[mode];
+        const pool = modeObj.phrases;
+        
+        // กรองเฉพาะดัชนีที่ยังไม่เคยถูกสุ่มในเซสชันนี้
+        let availableIndices = [];
+        for (let i = 0; i < pool.length; i++) {
+            if (!modeObj.usedIndices.has(i)) {
+                availableIndices.push(i);
+            }
+        }
+
+        // หากคำที่ยังไม่เคยใช้เหลือน้อยกว่า 20 คำ ให้ล้างประวัติเพื่อเริ่มรอบสุ่มใหม่
+        if (availableIndices.length < QUESTIONS_PER_GAME) {
+            modeObj.usedIndices.clear();
+            availableIndices = Array.from({ length: pool.length }, (_, i) => i);
+        }
+
+        // สลับลำดับด้วย Fisher-Yates Shuffle
+        for (let i = availableIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
+        }
+
+        // เลือกมา 20 คำที่ไม่ซ้ำกัน
+        const chosenIndices = availableIndices.slice(0, QUESTIONS_PER_GAME);
+        chosenIndices.forEach(idx => modeObj.usedIndices.add(idx));
+
+        // ตรวจสอบซ้ำอีกครั้งด้วย Set เพื่อรับประกันว่าไม่มีข้อความซ้ำกันใน 20 ข้อ
+        const uniquePhrases = [];
+        const seenText = new Set();
+        for (let idx of chosenIndices) {
+            if (!seenText.has(pool[idx])) {
+                seenText.add(pool[idx]);
+                uniquePhrases.push(pool[idx]);
+            }
+        }
+        return uniquePhrases;
+    }
+
+    // ตั้งค่า Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'th-TH';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = function() {
+            isEvaluating = false;
+            micBtn.innerText = "🎙️ กำลังฟัง... (พูดเลย!)";
+            micBtn.disabled = true;
+            statusText.innerText = "อ่านประโยคด้านบนให้จบภายใน 10 วินาที...";
+            resultBox.style.display = "none";
+            startCountdownTimer();
+        };
+
+        recognition.onresult = function(event) {
+            isEvaluating = true;
+            stopCountdownTimer();
+            const transcript = event.results[0][0].transcript;
+            evaluateSpeech(transcript);
+        };
+
+        recognition.onspeechend = function() {
+            recognition.stop();
+        };
+
+        recognition.onerror = function(event) {
+            if (isEvaluating) return;
+            stopCountdownTimer();
+            micBtn.innerText = "🎤 แตะเพื่อพูดใหม่ (10 วิ)";
+            micBtn.disabled = false;
+            statusText.innerText = "ไม่ได้ยินเสียงพูด หรือเกิดข้อผิดพลาด ลองกดพูดอีกครั้ง";
+        };
+
+        recognition.onend = function() {
+            if (!isEvaluating && timeRemaining > 0 && micBtn.innerText.includes("กำลังฟัง")) {
+                stopCountdownTimer();
+                micBtn.innerText = "🎤 แตะเพื่อพูดใหม่ (10 วิ)";
+                micBtn.disabled = false;
+                statusText.innerText = "ยังไม่ได้รับเสียงพูด กดปุ่มเพื่อลองใหม่อีกครั้ง";
+            }
+        };
+    } else {
+        alert("เบราว์เซอร์ของคุณไม่รองรับระบบรับเสียง กรุณาเปิดด้วย Google Chrome");
+    }
+
+    // ฟังก์ชันจับเวลา 10 วินาที
+    function startCountdownTimer() {
+        stopCountdownTimer();
+        timeRemaining = TIME_LIMIT_SEC;
+        updateTimerUI();
+
+        countdownInterval = setInterval(() => {
+            timeRemaining = Math.max(0, timeRemaining - 0.1);
+            updateTimerUI();
+
+            if (timeRemaining <= 0) {
+                handleTimeOut();
+            }
+        }, 100);
+    }
+
+    function stopCountdownTimer() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+    }
+
+    function resetTimerUI() {
+        stopCountdownTimer();
+        timeRemaining = TIME_LIMIT_SEC;
+        updateTimerUI();
+    }
+
+    function updateTimerUI() {
+        timerText.innerText = `⏱️ เวลาในการอ่าน: ${timeRemaining.toFixed(1)} วินาที`;
+        const percent = (timeRemaining / TIME_LIMIT_SEC) * 100;
+        timerBar.style.width = `${percent}%`;
+    }
+
+    function handleTimeOut() {
+        stopCountdownTimer();
+        isEvaluating = true;
+        try {
+            if (recognition) recognition.stop();
+        } catch (e) {}
+
+        attemptsOnCurrentQuestion++;
+        resultBox.style.display = "block";
+        resultBox.className = "result-box fail";
+        resultBox.innerHTML = `<strong>⏰ หมดเวลา 10 วินาที!</strong><br>คุณอ่านไม่ทันภายในเวลาที่กำหนด ต้องอ่านให้ผ่านจึงจะไปข้อถัดไปได้`;
+        
+        micBtn.innerText = "🎤 ลองพูดอีกครั้ง (10 วิ)";
+        micBtn.disabled = false;
+        statusText.innerText = "ตั้งสติแล้วกดพูดใหม่อีกครั้งให้ทัน 10 วินาที!";
+    }
+
+    // อัปเดตปุ่มเมนูตามการปลดล็อกโหมด
+    function updateMenuButtons() {
+        const btnMedium = document.getElementById('btn-mode-medium');
+        const badgeMedium = document.getElementById('badge-medium');
+        const btnHard = document.getElementById('btn-mode-hard');
+        const badgeHard = document.getElementById('badge-hard');
+
+        if (unlockedModes.medium) {
+            btnMedium.disabled = false;
+            badgeMedium.innerText = "ปลดล็อกแล้ว (300 คำ)";
+        }
+        if (unlockedModes.hard) {
+            btnHard.disabled = false;
+            badgeHard.innerText = "ปลดล็อกแล้ว (300 คำ)";
+        }
+    }
+
+    // กลับเมนูหลัก
+    function showMenu() {
+        stopCountdownTimer();
+        try { if (recognition) recognition.stop(); } catch (e) {}
+        
+        updateMenuButtons();
+        gameContainer.classList.remove('active-container');
+        endContainer.classList.remove('active-container');
+        menuContainer.classList.add('active-container');
+        
+        document.documentElement.style.setProperty('--bg-gradient', 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)');
+        document.documentElement.style.setProperty('--primary-color', '#2c3e50');
+    }
+
+    // เริ่มเกมตามโหมด
+    function startGame(mode) {
+        if (!SpeechRecognition) {
+            alert("กรุณาใช้ Google Chrome เพื่อใช้งานระบบตรวจจับเสียงพูด");
+            return;
+        }
+        if (!unlockedModes[mode]) {
+            alert("คุณต้องทำคะแนนโหมดก่อนหน้าให้ผ่านเกณฑ์ 1,500 คะแนนก่อน!");
+            return;
+        }
+
+        currentMode = mode;
+        currentLevel = 0;
+        totalScore = 0;
+        
+        // สุ่ม 20 คำที่ไม่ซ้ำกันจากคลัง 300 ประโยค
+        selectedQuestions = pick20UniquePhrases(mode);
+        
+        const data = gameData[mode];
+        document.documentElement.style.setProperty('--bg-gradient', data.theme.bg);
+        document.documentElement.style.setProperty('--primary-color', data.theme.primary);
+        document.documentElement.style.setProperty('--primary-hover', data.theme.hover);
+        
+        gameTitle.innerText = data.title;
+        totalScoreText.innerText = `คะแนนรวม: 0`;
+        
+        menuContainer.classList.remove('active-container');
+        endContainer.classList.remove('active-container');
+        gameContainer.classList.add('active-container');
+        
+        loadLevel();
+    }
+
+    function loadLevel() {
+        attemptsOnCurrentQuestion = 0;
+        resetTimerUI();
+
+        levelText.innerText = `ข้อที่: ${currentLevel + 1} / ${selectedQuestions.length}`;
+        phraseDisplay.innerText = selectedQuestions[currentLevel];
+        
+        resultBox.style.display = "none";
+        micBtn.innerText = "🎤 แตะเพื่อพูด (จับเวลา 10 วิ)";
+        micBtn.disabled = false;
+        statusText.innerText = "พร้อมแล้วกดปุ่มเพื่อพูดให้จบภายใน 10 วินาที";
+    }
+
+    function startListening() {
+        if (recognition) {
+            resetTimerUI();
+            recognition.start();
+        }
+    }
+
+    // คำนวณความเหมือนของข้อความ (Levenshtein Distance)
+    function similarity(s1, s2) {
+        s1 = s1.replace(/\s+/g, ''); 
+        s2 = s2.replace(/\s+/g, '');
+        
+        let longer = s1, shorter = s2;
+        if (s1.length < s2.length) { longer = s2; shorter = s1; }
+        
+        let longerLength = longer.length;
+        if (longerLength === 0) return 1.0;
+        
+        let costs = [];
+        for (let i = 0; i <= longer.length; i++) {
+            let lastValue = i;
+            for (let j = 0; j <= shorter.length; j++) {
+                if (i === 0) costs[j] = j;
+                else if (j > 0) {
+                    let newValue = costs[j - 1];
+                    if (longer.charAt(i - 1) !== shorter.charAt(j - 1)) {
+                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                    }
+                    costs[j - 1] = lastValue;
+                    lastValue = newValue;
+                }
+            }
+            if (i > 0) costs[shorter.length] = lastValue;
+        }
+        return (longerLength - costs[shorter.length]) / parseFloat(longerLength);
+    }
+
+    function evaluateSpeech(spokenText) {
+        const data = gameData[currentMode];
+        const targetText = selectedQuestions[currentLevel];
+        const accuracy = similarity(targetText, spokenText);
+        const rawScore = Math.round(accuracy * 100);
+
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `<strong>สิ่งที่คุณพูด:</strong> "${spokenText}"<br>ความแม่นยำในการอ่าน: ${rawScore}%`;
+
+        if (rawScore >= PASS_QUESTION_SCORE) {
+            // คำนวณคะแนนที่ได้รับ (หักรอบละ 5 คะแนนหากเคยพลาดในข้อนี้ แต่ไม่ต่ำกว่า 50 คะแนน)
+            const penalty = attemptsOnCurrentQuestion * 5;
+            const earnedScore = Math.max(50, rawScore - penalty);
+
+            resultBox.className = "result-box pass";
+            resultBox.innerHTML += `<br>✅ <strong>อ่านผ่าน!</strong> ได้รับ +${earnedScore} คะแนน` + 
+                (penalty > 0 ? ` (หักคะแนนลองใหม่ -${penalty})` : "");
+            
+            totalScore += earnedScore;
+            totalScoreText.innerText = `คะแนนรวม: ${totalScore}`;
+            statusText.innerText = "เยี่ยมมาก! กำลังไปข้อถัดไป...";
+            micBtn.innerText = "⏳ กำลังเปลี่ยนข้อ...";
+            micBtn.disabled = true;
+            
+            setTimeout(nextLevel, 2200);
+        } else {
+            // ไม่ผ่าน ต้องอ่านใหม่จนกว่าจะผ่าน
+            attemptsOnCurrentQuestion++;
+            resultBox.className = "result-box fail";
+            resultBox.innerHTML += `<br>${data.failMsg} (ต้องได้ ${PASS_QUESTION_SCORE}% ขึ้นไปถึงจะข้ามข้อได้)`;
+            micBtn.innerText = "🎤 ลองพูดอีกครั้ง (10 วิ)";
+            micBtn.disabled = false;
+            statusText.innerText = "ยังไม่ผ่านเกณฑ์ ลองพูดใหม่อีกครั้งภายใน 10 วินาที!";
+        }
+    }
+
+    function nextLevel() {
+        currentLevel++;
+        
+        if (currentLevel < selectedQuestions.length) {
+            loadLevel();
+        } else {
+            finishGame();
+        }
+    }
+
+    function finishGame() {
+        gameContainer.classList.remove('active-container');
+        endContainer.classList.add('active-container');
+        
+        const maxScore = selectedQuestions.length * 100;
+        const data = gameData[currentMode];
+        const nextModeBtn = document.getElementById('next-mode-btn');
+        const endTitle = document.getElementById('end-title');
+        const endMessage = document.getElementById('end-message');
+
+        document.getElementById('final-score').innerText = `คะแนนรวม: ${totalScore} / ${maxScore}`;
+
+        if (totalScore >= PASS_MODE_SCORE) {
+            endTitle.innerText = "🎉 ยินดีด้วย! คุณผ่านเกณฑ์โหมดนี้!";
+            if (data.nextMode) {
+                unlockedModes[data.nextMode] = true;
+                updateMenuButtons();
+                endMessage.innerHTML = `คุณทำคะแนนได้ถึงเกณฑ์ <strong>${PASS_MODE_SCORE} คะแนน</strong><br>🔓 <strong>ปลดล็อก "${gameData[data.nextMode].title}" เรียบร้อยแล้ว!</strong>`;
+                nextModeBtn.style.display = "inline-block";
+            } else {
+                endMessage.innerHTML = `🏆 สุดยอดปรมาจารย์! คุณพิชิตครบทุกโหมดความยาก (ง่าย-กลาง-ยาก) เรียบร้อยแล้ว!`;
+                nextModeBtn.style.display = "none";
+            }
+        } else {
+            endTitle.innerText = "💪 เกือบผ่านแล้ว! ลองอีกนิดนะ";
+            endMessage.innerHTML = `คุณทำได้ <strong>${totalScore} คะแนน</strong> แต่ต้องได้ <strong>${PASS_MODE_SCORE} คะแนนขึ้นไป</strong> จึงจะปลดล็อกโหมดถัดไปได้<br>กดเล่นอีกครั้งเพื่อสุ่มคำชุดใหม่ 20 คำแล้วทำคะแนนให้สูงขึ้น!`;
+            nextModeBtn.style.display = "none";
+        }
+    }
+
+    function goToNextMode() {
+        const nextMode = gameData[currentMode].nextMode;
+        if (nextMode && unlockedModes[nextMode]) {
+            startGame(nextMode);
+        }
+    }
+</script>
+
+</body>
+</html>
