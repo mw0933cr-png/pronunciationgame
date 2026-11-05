@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -161,7 +161,7 @@
     <h1 style="color: #2c3e50;">🎙️ เกมประลองลิ้น</h1>
     <p style="font-size: 16px; color: #34495e; margin-bottom: 20px;">
         สุ่มคำอ่าน <strong>10 ข้อ</strong> จากคลัง <strong>300 ประโยค</strong> (จับเวลาข้อละ 10 วินาที)<br>
-        ทำคะแนนให้ถึง <strong>700 / 1,000</strong> เพื่อปลดล็อกโหมดถัดไป!
+        ทำคะแนนให้ถึง <strong>700 / 1,000</strong> เพื่อปลดล็อกโหมดถัดไป! (มีตัวช่วยเปลี่ยนคำ 3 ครั้ง/รอบ)
     </p>
     
     <button class="menu-btn btn-easy" id="btn-mode-easy" onclick="startGame('easy')">
@@ -202,7 +202,7 @@
     
     <div class="action-buttons">
         <button id="mic-btn" onclick="startListening()">🎤 แตะเพื่อพูด (จับเวลา 10 วิ)</button>
-        <button id="skip-btn" class="btn-skip" onclick="skipQuestion()">⏭️ ข้ามข้อนี้</button>
+        <button id="skip-btn" class="btn-skip" onclick="skipQuestion()">🔄 เปลี่ยนคำ (3/3)</button>
     </div>
 
     <div class="status" id="status-text">พร้อมแล้วกดปุ่มเพื่อพูดภายใน 10 วินาทีได้เลย</div>
@@ -231,6 +231,7 @@
     const TIME_LIMIT_SEC = 10;         // จับเวลาข้อละ 10 วินาที
     const PASS_QUESTION_SCORE = 70;    // เกณฑ์ความแม่นยำรายข้อ (70% ขึ้นไปถือว่าอ่านผ่าน)
     const PASS_MODE_SCORE = 700;       // เกณฑ์คะแนนรวมเพื่อปลดล็อกโหมดถัดไป (700 / 1,000)
+    const MAX_SKIPS_PER_GAME = 3;      // เปลี่ยนคำได้สูงสุด 3 ครั้งต่อรอบ
 
     // คลังส่วนประกอบประโยคที่หลากหลาย เพื่อไม่ให้ประโยคคล้ายกัน
     const phraseComponents = {
@@ -334,7 +335,7 @@
         return list;
     }
 
-    // ข้อมูลแต่ละโหมด (ลบวงเล็บคลังคำศัพท์ 1, 2, 3 ออกแล้ว)
+    // ข้อมูลแต่ละโหมด
     const gameData = {
         easy: {
             title: "🟢 โหมดง่าย",
@@ -377,6 +378,7 @@
     let currentLevel = 0;
     let totalScore = 0;
     let attemptsOnCurrentQuestion = 0;
+    let skipsRemaining = MAX_SKIPS_PER_GAME;
 
     // ตัวแปรจับเวลา 10 วินาที
     let countdownInterval = null;
@@ -492,6 +494,38 @@
         return uniquePhrases;
     }
 
+    // ฟังก์ชันสุ่มประโยคใหม่ 1 ประโยคเพื่อมาแทนที่ข้อปัจจุบัน (เมื่อกดปุ่มเปลี่ยนคำ)
+    function pickReplacementPhrase(mode) {
+        const modeObj = gameData[mode];
+        const pool = modeObj.phrases;
+        const currentQuestionsSet = new Set(selectedQuestions);
+
+        let candidates = [];
+        for (let i = 0; i < pool.length; i++) {
+            const item = pool[i];
+            const text = typeof item === 'string' ? item : item.text;
+            if (!modeObj.usedIndices.has(i) && !currentQuestionsSet.has(text)) {
+                candidates.push(i);
+            }
+        }
+
+        // หากคลังคำถูกใช้จนเกือบหมด ให้สุ่มจากคำไหนก็ได้ที่ไม่อยู่ใน 10 ข้อปัจจุบัน
+        if (candidates.length === 0) {
+            for (let i = 0; i < pool.length; i++) {
+                const item = pool[i];
+                const text = typeof item === 'string' ? item : item.text;
+                if (!currentQuestionsSet.has(text)) {
+                    candidates.push(i);
+                }
+            }
+        }
+
+        const randomIndex = candidates[Math.floor(Math.random() * candidates.length)];
+        modeObj.usedIndices.add(randomIndex);
+        const chosenItem = pool[randomIndex];
+        return typeof chosenItem === 'string' ? chosenItem : chosenItem.text;
+    }
+
     // ตั้งค่า Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
@@ -577,6 +611,11 @@
         timerBar.style.width = `${percent}%`;
     }
 
+    function updateSkipButtonUI() {
+        skipBtn.innerText = `🔄 เปลี่ยนคำ (${skipsRemaining}/${MAX_SKIPS_PER_GAME})`;
+        skipBtn.disabled = (skipsRemaining <= 0);
+    }
+
     function handleTimeOut() {
         stopCountdownTimer();
         isEvaluating = true;
@@ -587,29 +626,36 @@
         attemptsOnCurrentQuestion++;
         resultBox.style.display = "block";
         resultBox.className = "result-box fail";
-        resultBox.innerHTML = `<strong>⏰ หมดเวลา 10 วินาที!</strong><br>คุณอ่านไม่ทันภายในเวลาที่กำหนด ลองอ่านใหม่หรือกดข้ามข้อได้`;
+        resultBox.innerHTML = `<strong>⏰ หมดเวลา 10 วินาที!</strong><br>คุณอ่านไม่ทันภายในเวลาที่กำหนด ลองอ่านใหม่หรือกดเปลี่ยนคำได้`;
         
         micBtn.innerText = "🎤 ลองพูดอีกครั้ง (10 วิ)";
         micBtn.disabled = false;
+        updateSkipButtonUI();
         statusText.innerText = "ตั้งสติแล้วกดพูดใหม่อีกครั้งให้ทัน 10 วินาที!";
     }
 
-    // ฟังก์ชันข้ามข้อ
+    // ฟังก์ชันเปลี่ยนคำในข้อเดิม (สูงสุด 3 ครั้งต่อรอบ ไม่เสียข้อ)
     function skipQuestion() {
+        if (skipsRemaining <= 0) return;
+
         stopCountdownTimer();
         isEvaluating = true;
         try {
             if (recognition) recognition.stop();
         } catch (e) {}
 
-        micBtn.disabled = true;
-        skipBtn.disabled = true;
-        resultBox.style.display = "block";
-        resultBox.className = "result-box fail";
-        resultBox.innerHTML = `⏭️ <strong>ข้ามข้อนี้!</strong> (ได้รับ +0 คะแนน)`;
-        statusText.innerText = "กำลังข้ามไปข้อถัดไป...";
+        skipsRemaining--;
+        selectedQuestions[currentLevel] = pickReplacementPhrase(currentMode);
+        attemptsOnCurrentQuestion = 0; // รีเซ็ตการหักคะแนนสำหรับคำใหม่
+        resetTimerUI();
 
-        setTimeout(nextLevel, 1000);
+        phraseDisplay.innerText = selectedQuestions[currentLevel];
+        resultBox.style.display = "none";
+        
+        micBtn.innerText = "🎤 แตะเพื่อพูด (จับเวลา 10 วิ)";
+        micBtn.disabled = false;
+        updateSkipButtonUI();
+        statusText.innerText = `🔄 เปลี่ยนคำใหม่ให้แล้ว! (เหลือสิทธิ์เปลี่ยนคำอีก ${skipsRemaining} ครั้ง)`;
     }
 
     // อัปเดตปุ่มเมนูตามการปลดล็อกโหมด
@@ -658,6 +704,7 @@
         currentMode = mode;
         currentLevel = 0;
         totalScore = 0;
+        skipsRemaining = MAX_SKIPS_PER_GAME;
         
         selectedQuestions = pick10UniquePhrases(mode);
         
@@ -686,7 +733,7 @@
         resultBox.style.display = "none";
         micBtn.innerText = "🎤 แตะเพื่อพูด (จับเวลา 10 วิ)";
         micBtn.disabled = false;
-        skipBtn.disabled = false;
+        updateSkipButtonUI();
         statusText.innerText = "พร้อมแล้วกดปุ่มเพื่อพูดให้จบภายใน 10 วินาที";
     }
 
@@ -755,9 +802,10 @@
         } else {
             attemptsOnCurrentQuestion++;
             resultBox.className = "result-box fail";
-            resultBox.innerHTML += `<br>${data.failMsg} (ต้องได้ ${PASS_QUESTION_SCORE}% ขึ้นไปถึงจะผ่าน หรือกดข้ามข้อ)`;
+            resultBox.innerHTML += `<br>${data.failMsg} (ต้องได้ ${PASS_QUESTION_SCORE}% ขึ้นไปถึงจะผ่าน หรือกดเปลี่ยนคำ)`;
             micBtn.innerText = "🎤 ลองพูดอีกครั้ง (10 วิ)";
             micBtn.disabled = false;
+            updateSkipButtonUI();
             statusText.innerText = "ยังไม่ผ่านเกณฑ์ ลองพูดใหม่อีกครั้งภายใน 10 วินาที!";
         }
     }
